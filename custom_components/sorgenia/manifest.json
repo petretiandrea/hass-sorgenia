@@ -1,0 +1,14 @@
+{
+  "domain": "sorgenia",
+  "name": "Sorgenia",
+  "codeowners": [
+    "@petretiandrea"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/petretiandrea/hass-sorgenia",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/petretiandrea/hass-sorgenia/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
