@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from custom_components.sorgenia.const import BIDGELY_USER_ID, SORGENIA_BASIC_AUTH, SORGENIA_SUBSCRIPTION_KEY
+from custom_components.sorgenia.const import SORGENIA_BASIC_AUTH, SORGENIA_SUBSCRIPTION_KEY
 from custom_components.sorgenia.sorgenia_api import SorgeniaApi, SorgeniaAuth, SorgeniaTokens
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -57,7 +57,6 @@ async def async_validate_tokens(
         auth,
         client_code=client_code,
         pod=pod,
-        bidgely_user_id=BIDGELY_USER_ID,
         subscription_key=SORGENIA_SUBSCRIPTION_KEY,
     )
     await client.async_get_bidgely_jwt()

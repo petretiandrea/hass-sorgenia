@@ -21,7 +21,6 @@ class SorgeniaApi:
         *,
         client_code: str,
         pod: str,
-        bidgely_user_id: str,
         subscription_key: str,
         timeout: ClientTimeout | None = DEFAULT_TIMEOUT,
     ) -> None:
@@ -29,7 +28,6 @@ class SorgeniaApi:
         self._auth = auth
         self._client_code = client_code
         self._pod = pod
-        self._bidgely_user_id = bidgely_user_id
         self._subscription_key = subscription_key
         self._timeout = timeout
 
@@ -71,7 +69,7 @@ class SorgeniaApi:
         )
         response = await bidgely.async_usage_chart_details(
             self._auth.websession,
-            self._bidgely_user_id,
+            session.user_id,
             session.access_token,
             timeout=self._timeout,
             **kwargs,

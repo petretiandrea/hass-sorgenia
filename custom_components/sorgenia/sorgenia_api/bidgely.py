@@ -21,6 +21,7 @@ class BidgelySession:
     """Short-lived api-read bearer produced by the Bidgely SSO exchange."""
 
     access_token: str
+    user_id: str
 
 
 async def async_exchange_sso_token(
@@ -56,15 +57,15 @@ async def async_exchange_sso_token(
                 endpoint=BIDGELY_SSO_URL,
             )
 
-    token = _token_from_location(location)
-    if not token:
+    session = _session_from_location(location)
+    if session is None:
         raise BidgelyError(
             "Bidgely SSO did not return an api-read session token",
             http_status=response.status,
             endpoint=BIDGELY_SSO_URL,
             response={"location": location, "body": body[:500]},
         )
-    return BidgelySession(access_token=token)
+    return session
 
 
 async def async_usage_chart_details(
@@ -120,7 +121,15 @@ def _current_month_range() -> tuple[int, int]:
     return int(month_start.timestamp()), int((next_month - timedelta(seconds=1)).timestamp())
 
 
-def _token_from_location(location: str) -> str | None:
+def _session_from_location(location: str) -> BidgelySession | None:
     values = parse_qs(urlparse(location).query)
-    token = values.get("token", [None])[0]
-    return token if isinstance(token, str) and token else None
+    token = _location_value(values, "token")
+    user_id = _location_value(values, "uuid")
+    if token is None or user_id is None:
+        return None
+    return BidgelySession(access_token=token, user_id=user_id)
+
+
+def _location_value(values: dict[str, list[str]], key: str) -> str | None:
+    value = values.get(key, [None])[0]
+    return value if isinstance(value, str) and value else None

@@ -15,7 +15,6 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.loader import async_get_loaded_integration
 
 from .const import (
-    BIDGELY_USER_ID,
     CONF_ACCESS_TOKEN,
     CONF_CLIENT_CODE,
     CONF_POD,
@@ -93,7 +92,6 @@ async def async_setup_entry(
         auth,
         client_code=entry.data[CONF_CLIENT_CODE],
         pod=entry.data[CONF_POD],
-        bidgely_user_id=BIDGELY_USER_ID,
         subscription_key=SORGENIA_SUBSCRIPTION_KEY,
     )
 
