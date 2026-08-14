@@ -3,9 +3,12 @@
 import json
 from typing import Any
 
+from aiohttp import ClientTimeout
+
 from custom_components.sorgenia.sorgenia_api import bidgely
 from custom_components.sorgenia.sorgenia_api.auth.base import AbstractAuth
 from custom_components.sorgenia.sorgenia_api.errors import ClientError, error_from_response, raise_for_api_response
+from custom_components.sorgenia.sorgenia_api.http import DEFAULT_TIMEOUT
 
 
 class SorgeniaApi:
@@ -19,7 +22,7 @@ class SorgeniaApi:
         pod: str,
         bidgely_user_id: str,
         subscription_key: str,
-        timeout: float = 30.0,
+        timeout: ClientTimeout | None = DEFAULT_TIMEOUT,
     ) -> None:
         """Initialize the consumption API with its authenticated account context."""
         self._auth = auth
