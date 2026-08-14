@@ -6,10 +6,10 @@ import time
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 
 from custom_components.sorgenia.sorgenia_api.errors import BidgelyError
-from custom_components.sorgenia.sorgenia_api.http import async_request_json
+from custom_components.sorgenia.sorgenia_api.http import DEFAULT_TIMEOUT, async_request_json
 
 BIDGELY_API = "https://api-read.eu.bidgely.com"
 BIDGELY_SSO_URL = "https://ssoprod.bidgely.com/prod-eu/20013/sso/token"
@@ -26,7 +26,7 @@ async def async_exchange_sso_token(
     websession: ClientSession,
     bidgely_jwt: str,
     *,
-    timeout: float = 30.0,
+    timeout: ClientTimeout | None = DEFAULT_TIMEOUT,
 ) -> BidgelySession:
     """Exchange the JWT returned by Sorgenia for the opaque Bidgely bearer."""
     headers = {
@@ -76,7 +76,7 @@ async def async_usage_chart_details(
     end: int | None = None,
     measurement_type: str = "ELECTRIC",
     locale: str = "it_IT",
-    timeout: float = 30.0,
+    timeout: ClientTimeout | None = DEFAULT_TIMEOUT,
 ) -> Any:
     """Return the raw ``usage-chart-details`` document from Bidgely."""
     query = urlencode(

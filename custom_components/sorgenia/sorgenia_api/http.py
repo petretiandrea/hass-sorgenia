@@ -4,9 +4,11 @@ import json
 import os
 from typing import Any
 
-from aiohttp import ClientError as AiohttpClientError, ClientSession
+from aiohttp import ClientError as AiohttpClientError, ClientSession, ClientTimeout
 
 from custom_components.sorgenia.sorgenia_api.errors import ClientError, error_from_response
+
+DEFAULT_TIMEOUT = ClientTimeout(total=30)
 
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -20,7 +22,7 @@ async def async_request_json(
     *,
     headers: dict[str, str] | None = None,
     json_body: dict[str, Any] | None = None,
-    timeout: float | None = 30.0,
+    timeout: ClientTimeout | None = DEFAULT_TIMEOUT,
     allow_redirects: bool = True,
 ) -> Any:
     """Perform an async JSON request and convert API errors to library errors."""

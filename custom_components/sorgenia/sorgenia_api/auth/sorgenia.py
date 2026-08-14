@@ -7,7 +7,7 @@ import json
 import time
 from typing import Any
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 
 from custom_components.sorgenia.sorgenia_api.auth.base import AbstractAuth
 from custom_components.sorgenia.sorgenia_api.errors import (
@@ -16,7 +16,7 @@ from custom_components.sorgenia.sorgenia_api.errors import (
     OtpRequired,
     raise_for_api_response,
 )
-from custom_components.sorgenia.sorgenia_api.http import async_request_json
+from custom_components.sorgenia.sorgenia_api.http import DEFAULT_TIMEOUT, async_request_json
 from custom_components.sorgenia.sorgenia_api.models import SorgeniaTokens
 
 SORGENIA_API = "https://api-prod.sorgenia.it"
@@ -32,7 +32,7 @@ class SorgeniaAuth(AbstractAuth):
         subscription_key: str,
         basic_auth: str,
         tokens: SorgeniaTokens | None = None,
-        timeout: float = 30.0,
+        timeout: ClientTimeout | None = DEFAULT_TIMEOUT,
         host: str = SORGENIA_API,
     ) -> None:
         """Initialize authentication with the Sorgenia application credentials."""
