@@ -5,7 +5,7 @@ from typing import Any
 
 import voluptuous as vol
 
-from custom_components.sorgenia.const import CONF_CLIENT_CODE, CONF_OTP, CONF_POD
+from custom_components.sorgenia.const import CONF_ACCESS_TOKEN, CONF_CLIENT_CODE, CONF_OTP, CONF_POD, CONF_REFRESH_TOKEN
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.helpers import selector
 
@@ -25,6 +25,11 @@ _OTP_SELECTOR = selector.TextSelector(
     selector.TextSelectorConfig(
         type=selector.TextSelectorType.TEXT,
         autocomplete="one-time-code",
+    ),
+)
+_TOKEN_SELECTOR = selector.TextSelector(
+    selector.TextSelectorConfig(
+        type=selector.TextSelectorType.PASSWORD,
     ),
 )
 
@@ -50,6 +55,19 @@ def get_user_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
             vol.Required(CONF_PASSWORD): _PASSWORD_SELECTOR,
             vol.Required(CONF_CLIENT_CODE): _USERNAME_SELECTOR,
             vol.Required(CONF_POD): _USERNAME_SELECTOR,
+        },
+    )
+
+
+def get_tokens_schema() -> vol.Schema:
+    """Build the schema for setup with existing session tokens."""
+    return vol.Schema(
+        {
+            vol.Required(CONF_USERNAME): _USERNAME_SELECTOR,
+            vol.Required(CONF_CLIENT_CODE): _USERNAME_SELECTOR,
+            vol.Required(CONF_POD): _USERNAME_SELECTOR,
+            vol.Required(CONF_ACCESS_TOKEN): _TOKEN_SELECTOR,
+            vol.Required(CONF_REFRESH_TOKEN): _TOKEN_SELECTOR,
         },
     )
 
@@ -101,5 +119,6 @@ __all__ = [
     "get_otp_schema",
     "get_reauth_schema",
     "get_reconfigure_schema",
+    "get_tokens_schema",
     "get_user_schema",
 ]

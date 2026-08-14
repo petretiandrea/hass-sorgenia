@@ -37,7 +37,6 @@ class SorgeniaDataUpdateCoordinator(DataUpdateCoordinator[SorgeniaConsumptionDat
         """
         try:
             details = await self.config_entry.runtime_data.client.async_get_usage_chart_details()
-            interval = details.ongoing_interval
         except SorgeniaApiAuthenticationError as exception:
             raise ConfigEntryAuthFailed(
                 translation_domain=DOMAIN,

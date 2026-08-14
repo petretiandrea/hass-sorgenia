@@ -6,12 +6,14 @@ from .consumption import ENTITY_DESCRIPTIONS, SorgeniaConsumptionSensor
 
 if TYPE_CHECKING:
     from custom_components.sorgenia.data import SorgeniaConfigEntry
+    from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
+    hass: HomeAssistant,
     entry: SorgeniaConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
