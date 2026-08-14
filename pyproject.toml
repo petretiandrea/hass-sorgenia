@@ -11,7 +11,11 @@ version = "0.0.0"              # Version is managed in manifest.json only
 requires-python = ">=3.14"
 
 [tool.setuptools]
-packages = ["custom_components.sorgenia"]
+packages = [
+    "custom_components.sorgenia",
+    "custom_components.sorgenia.sorgenia_api",
+    "custom_components.sorgenia.sorgenia_api.auth",
+]
 
 [tool.pyright]
 include = ["custom_components/sorgenia"]

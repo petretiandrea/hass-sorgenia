@@ -5,6 +5,7 @@ from typing import Any
 
 import voluptuous as vol
 
+from custom_components.sorgenia.const import CONF_OTP
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.helpers import selector
 
@@ -18,6 +19,12 @@ _PASSWORD_SELECTOR = selector.TextSelector(
     selector.TextSelectorConfig(
         type=selector.TextSelectorType.PASSWORD,
         autocomplete="current-password",
+    ),
+)
+_OTP_SELECTOR = selector.TextSelector(
+    selector.TextSelectorConfig(
+        type=selector.TextSelectorType.TEXT,
+        autocomplete="one-time-code",
     ),
 )
 
@@ -83,7 +90,13 @@ def get_reauth_schema(username: str) -> vol.Schema:
     )
 
 
+def get_otp_schema() -> vol.Schema:
+    """Build the schema for the OTP verification step."""
+    return vol.Schema({vol.Required(CONF_OTP): _OTP_SELECTOR})
+
+
 __all__ = [
+    "get_otp_schema",
     "get_reauth_schema",
     "get_reconfigure_schema",
     "get_user_schema",
