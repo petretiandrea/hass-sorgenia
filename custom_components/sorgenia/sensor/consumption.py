@@ -2,12 +2,14 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 
 from custom_components.sorgenia.coordinator.base import SorgeniaConsumptionData, SorgeniaDataUpdateCoordinator
 from custom_components.sorgenia.entity import SorgeniaEntity
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription, SensorStateClass
 from homeassistant.const import CURRENCY_EURO, UnitOfEnergy
 from homeassistant.helpers.typing import StateType
+from homeassistant.util import dt as dt_util
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -15,6 +17,7 @@ class SorgeniaSensorEntityDescription(SensorEntityDescription):
     """Describe a Sorgenia sensor and how to read its coordinator data."""
 
     value_fn: Callable[[SorgeniaConsumptionData], StateType]
+    last_reset_fn: Callable[[SorgeniaConsumptionData], datetime]
 
 
 ENTITY_DESCRIPTIONS: tuple[SorgeniaSensorEntityDescription, ...] = (
@@ -22,9 +25,10 @@ ENTITY_DESCRIPTIONS: tuple[SorgeniaSensorEntityDescription, ...] = (
         key="consumption",
         translation_key="consumption",
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.TOTAL,
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         value_fn=lambda data: data.get("consumption"),
+        last_reset_fn=lambda data: dt_util.utc_from_timestamp(data["interval_start"]),
     ),
     SorgeniaSensorEntityDescription(
         key="cost",
@@ -33,6 +37,7 @@ ENTITY_DESCRIPTIONS: tuple[SorgeniaSensorEntityDescription, ...] = (
         state_class=SensorStateClass.TOTAL,
         native_unit_of_measurement=CURRENCY_EURO,
         value_fn=lambda data: data.get("cost"),
+        last_reset_fn=lambda data: dt_util.utc_from_timestamp(data["interval_start"]),
     ),
 )
 
@@ -49,6 +54,11 @@ class SorgeniaConsumptionSensor(SensorEntity, SorgeniaEntity):
     ) -> None:
         """Initialize a consumption or cost sensor."""
         super().__init__(coordinator, entity_description)
+
+    @property
+    def last_reset(self) -> datetime:
+        """Return the start of the current billing cycle."""
+        return self.entity_description.last_reset_fn(self.coordinator.data)
 
     @property
     def native_value(self) -> StateType:

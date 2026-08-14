@@ -16,6 +16,7 @@ class SorgeniaConsumptionData(TypedDict):
 
     consumption: float
     cost: float
+    interval_start: int
 
 
 class SorgeniaDataUpdateCoordinator(DataUpdateCoordinator[SorgeniaConsumptionData]):
@@ -51,4 +52,8 @@ class SorgeniaDataUpdateCoordinator(DataUpdateCoordinator[SorgeniaConsumptionDat
             interval = details.ongoing_interval
             if interval is None:
                 raise UpdateFailed("Bidgely did not return the ongoing billing interval")
-            return {"consumption": interval.consumption, "cost": interval.cost}
+            return {
+                "consumption": interval.consumption,
+                "cost": interval.cost,
+                "interval_start": interval.interval_start,
+            }
