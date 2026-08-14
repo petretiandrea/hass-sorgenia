@@ -5,7 +5,7 @@ from typing import Any
 
 import voluptuous as vol
 
-from custom_components.sorgenia.const import CONF_OTP
+from custom_components.sorgenia.const import CONF_CLIENT_CODE, CONF_OTP, CONF_POD
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.helpers import selector
 
@@ -48,6 +48,8 @@ def get_user_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
                 default=defaults.get(CONF_USERNAME, vol.UNDEFINED),
             ): _USERNAME_SELECTOR,
             vol.Required(CONF_PASSWORD): _PASSWORD_SELECTOR,
+            vol.Required(CONF_CLIENT_CODE): _USERNAME_SELECTOR,
+            vol.Required(CONF_POD): _USERNAME_SELECTOR,
         },
     )
 

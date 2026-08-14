@@ -1,7 +1,8 @@
 """Sorgenia credential acquisition, OTP and refresh-token flow."""
 
 import base64
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
+from dataclasses import replace
 import hashlib
 import json
 import time
@@ -11,9 +12,9 @@ from aiohttp import ClientSession, ClientTimeout
 
 from custom_components.sorgenia.sorgenia_api.auth.base import AbstractAuth
 from custom_components.sorgenia.sorgenia_api.errors import (
-    AuthenticationError,
-    ClientError,
     OtpRequired,
+    SorgeniaApiAuthenticationError,
+    SorgeniaApiError,
     raise_for_api_response,
 )
 from custom_components.sorgenia.sorgenia_api.http import DEFAULT_TIMEOUT, async_request_json
@@ -34,6 +35,7 @@ class SorgeniaAuth(AbstractAuth):
         tokens: SorgeniaTokens | None = None,
         timeout: ClientTimeout | None = DEFAULT_TIMEOUT,
         host: str = SORGENIA_API,
+        token_updated: Callable[[SorgeniaTokens], Awaitable[None]] | None = None,
     ) -> None:
         """Initialize authentication with the Sorgenia application credentials."""
         super().__init__(websession, host)
@@ -41,6 +43,7 @@ class SorgeniaAuth(AbstractAuth):
         self.basic_auth = basic_auth
         self.timeout = timeout
         self._tokens = tokens
+        self._token_updated = token_updated
 
     @property
     def tokens(self) -> SorgeniaTokens | None:
@@ -59,8 +62,8 @@ class SorgeniaAuth(AbstractAuth):
             tokens = await self.async_refresh()
             return tokens.access_token
         if self._tokens and self._tokens.access_token:
-            raise AuthenticationError("Sorgenia access token is expired and cannot be refreshed")
-        raise AuthenticationError("No Sorgenia access token is available")
+            raise SorgeniaApiAuthenticationError("Sorgenia access token is expired and cannot be refreshed")
+        raise SorgeniaApiAuthenticationError("No Sorgenia access token is available")
 
     async def async_login(self, username: str, password: str) -> SorgeniaTokens:
         """Log in with credentials and return the resulting token pair."""
@@ -86,7 +89,7 @@ class SorgeniaAuth(AbstractAuth):
                     response=response,
                 )
         tokens = _tokens_from_response(response, f"{self.host}/sorgenia/V5/login")
-        self._tokens = tokens
+        await self._async_set_tokens(tokens)
         return tokens
 
     async def async_send_otp(
@@ -145,13 +148,13 @@ class SorgeniaAuth(AbstractAuth):
             timeout=self.timeout,
         )
         tokens = _tokens_from_response(response, f"{self.host}/sorgenia/V2/verifyOTP")
-        self._tokens = tokens
+        await self._async_set_tokens(tokens)
         return tokens
 
     async def async_refresh(self) -> SorgeniaTokens:
         """Rotate the refresh token and return the new token pair."""
         if not self._tokens or not self._tokens.refresh_token or not self._tokens.username:
-            raise AuthenticationError("A username and refresh token are required")
+            raise SorgeniaApiAuthenticationError("A username and refresh token are required")
         response = await async_request_json(
             self.websession,
             "POST",
@@ -164,8 +167,20 @@ class SorgeniaAuth(AbstractAuth):
             timeout=self.timeout,
         )
         tokens = _tokens_from_response(response, f"{self.host}/sorgenia/V6/refreshtoken")
-        self._tokens = tokens
+        await self._async_set_tokens(tokens)
         return tokens
+
+    async def _async_set_tokens(self, tokens: SorgeniaTokens) -> None:
+        """Store new tokens and notify the application that persists them."""
+        if self._tokens is not None:
+            tokens = replace(
+                tokens,
+                username=tokens.username or self._tokens.username,
+                validated_phone=tokens.validated_phone or self._tokens.validated_phone,
+            )
+        self._tokens = tokens
+        if self._token_updated is not None:
+            await self._token_updated(tokens)
 
     def _basic_headers(self) -> dict[str, str]:
         return {
@@ -177,16 +192,16 @@ class SorgeniaAuth(AbstractAuth):
 def _tokens_from_response(response: Any, endpoint: str) -> SorgeniaTokens:
     raise_for_api_response(response, endpoint=endpoint)
     if not isinstance(response, Mapping):
-        raise ClientError(f"{endpoint} returned a non-object response")
+        raise SorgeniaApiError(f"{endpoint} returned a non-object response")
     try:
         return SorgeniaTokens.from_response(response)
     except ValueError as exc:
-        raise ClientError(f"{endpoint} did not return an access token") from exc
+        raise SorgeniaApiError(f"{endpoint} did not return an access token") from exc
 
 
 def _mapping_response(response: Any) -> Mapping[str, Any]:
     if not isinstance(response, Mapping):
-        raise ClientError("Sorgenia returned a non-object response")
+        raise SorgeniaApiError("Sorgenia returned a non-object response")
     return response
 
 

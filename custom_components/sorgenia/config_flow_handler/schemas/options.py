@@ -28,7 +28,7 @@ def get_options_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
                 default=defaults.get(CONF_UPDATE_INTERVAL_HOURS, DEFAULT_UPDATE_INTERVAL_HOURS),
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
-                    min=0.25,
+                    min=1,
                     max=24,
                     step=0.25,
                     unit_of_measurement="h",

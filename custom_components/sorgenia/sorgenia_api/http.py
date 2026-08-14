@@ -6,7 +6,7 @@ from typing import Any
 
 from aiohttp import ClientError as AiohttpClientError, ClientSession, ClientTimeout
 
-from custom_components.sorgenia.sorgenia_api.errors import ClientError, error_from_response
+from custom_components.sorgenia.sorgenia_api.errors import SorgeniaApiCommunicationError, error_from_response
 
 DEFAULT_TIMEOUT = ClientTimeout(total=30)
 
@@ -49,8 +49,8 @@ async def async_request_json(
                     message=f"{method} {url} failed",
                 )
             return payload
-    except AiohttpClientError as exc:
-        raise ClientError(f"network error calling {url}: {exc}") from exc
+    except (AiohttpClientError, TimeoutError) as exc:
+        raise SorgeniaApiCommunicationError(f"network error calling {url}: {exc}") from exc
 
 
 def _decode_json(raw: bytes) -> Any:

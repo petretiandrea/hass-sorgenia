@@ -1,28 +1,21 @@
-"""Sensor platform for sorgenia."""
+"""Sorgenia sensor platform."""
 
 from typing import TYPE_CHECKING
 
-from .air_quality import ENTITY_DESCRIPTIONS as AIR_QUALITY_DESCRIPTIONS
-from .diagnostic import ENTITY_DESCRIPTIONS as DIAGNOSTIC_DESCRIPTIONS
-from .entity import SorgeniaSensor
-
-# Read-only platform: the coordinator already serializes the fetch.
-PARALLEL_UPDATES = 0
+from .consumption import ENTITY_DESCRIPTIONS, SorgeniaConsumptionSensor
 
 if TYPE_CHECKING:
     from custom_components.sorgenia.data import SorgeniaConfigEntry
-    from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-ENTITY_DESCRIPTIONS = (*AIR_QUALITY_DESCRIPTIONS, *DIAGNOSTIC_DESCRIPTIONS)
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
     entry: SorgeniaConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the sensor platform."""
+    """Set up Sorgenia consumption sensors."""
     async_add_entities(
-        SorgeniaSensor(entry.runtime_data.coordinator, description) for description in ENTITY_DESCRIPTIONS
+        SorgeniaConsumptionSensor(entry.runtime_data.coordinator, description) for description in ENTITY_DESCRIPTIONS
     )

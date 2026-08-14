@@ -4,7 +4,9 @@ from abc import ABC, abstractmethod
 from typing import Any
 from urllib.parse import urljoin
 
-from aiohttp import ClientResponse, ClientSession
+from aiohttp import ClientError as AiohttpClientError, ClientResponse, ClientSession
+
+from custom_components.sorgenia.sorgenia_api.errors import SorgeniaApiCommunicationError
 
 
 class AbstractAuth(ABC):
@@ -33,4 +35,7 @@ class AbstractAuth(ABC):
             if path_or_url.startswith(("https://", "http://"))
             else urljoin(f"{self.host}/", path_or_url.lstrip("/"))
         )
-        return await self.websession.request(method, url, headers=headers, **kwargs)
+        try:
+            return await self.websession.request(method, url, headers=headers, **kwargs)
+        except (AiohttpClientError, TimeoutError) as exc:
+            raise SorgeniaApiCommunicationError(f"network error calling {url}: {exc}") from exc

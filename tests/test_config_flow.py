@@ -6,7 +6,9 @@ import pytest
 
 from custom_components.sorgenia.const import (
     CONF_ACCESS_TOKEN,
+    CONF_CLIENT_CODE,
     CONF_OTP,
+    CONF_POD,
     CONF_REFRESH_TOKEN,
     CONF_VALIDATED_PHONE,
     DOMAIN,
@@ -38,14 +40,15 @@ async def test_user_flow_creates_entry_with_tokens(hass: HomeAssistant) -> None:
 
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {CONF_USERNAME: "test-user", CONF_PASSWORD: "test-password"},
+            {CONF_USERNAME: "test-user", CONF_PASSWORD: "test-password", CONF_CLIENT_CODE: "client", CONF_POD: "pod"},
         )
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "Sorgenia"
     assert result["data"] == {
         CONF_USERNAME: "test-user",
-        CONF_PASSWORD: "test-password",
+        CONF_CLIENT_CODE: "client",
+        CONF_POD: "pod",
         CONF_ACCESS_TOKEN: "access-token",
         CONF_REFRESH_TOKEN: "refresh-token",
         CONF_VALIDATED_PHONE: "+39000000000",
@@ -85,7 +88,7 @@ async def test_user_flow_completes_otp_login(hass: HomeAssistant) -> None:
         result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {CONF_USERNAME: "test-user", CONF_PASSWORD: "test-password"},
+            {CONF_USERNAME: "test-user", CONF_PASSWORD: "test-password", CONF_CLIENT_CODE: "client", CONF_POD: "pod"},
         )
         assert result["type"] is FlowResultType.FORM
         assert result["step_id"] == "otp"
@@ -131,7 +134,7 @@ async def test_otp_flow_recovers_after_invalid_code(hass: HomeAssistant) -> None
         result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {CONF_USERNAME: "test-user", CONF_PASSWORD: "test-password"},
+            {CONF_USERNAME: "test-user", CONF_PASSWORD: "test-password", CONF_CLIENT_CODE: "client", CONF_POD: "pod"},
         )
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_OTP: "000000"})
         assert result["type"] is FlowResultType.FORM

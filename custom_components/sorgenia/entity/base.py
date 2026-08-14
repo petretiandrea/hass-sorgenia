@@ -41,7 +41,5 @@ class SorgeniaEntity(CoordinatorEntity[SorgeniaDataUpdateCoordinator]):
             },
             name=coordinator.config_entry.title,
             manufacturer="Sorgenia",
-            model=coordinator.data["model"],
-            serial_number=coordinator.data["serial_number"],
-            sw_version=coordinator.data["sw_version"],
+            model="Electricity account",
         )

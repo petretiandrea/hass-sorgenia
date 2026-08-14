@@ -6,11 +6,15 @@ from typing import Any
 from custom_components.sorgenia.sorgenia_api.error_codes import describe_error
 
 
-class ClientError(RuntimeError):
-    """Base exception raised when an API request cannot be completed."""
+class SorgeniaApiError(RuntimeError):
+    """Base exception raised when a Sorgenia API request cannot be completed."""
 
 
-class SorgeniaApiError(ClientError):
+class SorgeniaApiCommunicationError(SorgeniaApiError):
+    """Network, DNS, timeout, or transport error communicating with Sorgenia."""
+
+
+class SorgeniaApiResponseError(SorgeniaApiError):
     """Structured error returned by Sorgenia or Bidgely."""
 
     def __init__(
@@ -52,11 +56,11 @@ class SorgeniaApiError(ClientError):
         return f"{status}{code}: {_redact(text)}"
 
 
-class AuthenticationError(SorgeniaApiError):
+class SorgeniaApiAuthenticationError(SorgeniaApiResponseError):
     """Authentication, credentials, or token error."""
 
 
-class OtpError(AuthenticationError):
+class OtpError(SorgeniaApiAuthenticationError):
     """OTP sending or validation error."""
 
 
@@ -64,11 +68,11 @@ class OtpValidationError(OtpError):
     """The submitted OTP is invalid, stale, or attempts are exhausted."""
 
 
-class BidgelyError(SorgeniaApiError):
+class BidgelyError(SorgeniaApiResponseError):
     """Error returned by the consumption API."""
 
 
-class OtpRequired(AuthenticationError):
+class OtpRequired(SorgeniaApiAuthenticationError):
     """Login accepted the credentials but requires phone OTP validation."""
 
     def __init__(
@@ -98,7 +102,7 @@ def error_from_response(
     http_status: int | None = None,
     endpoint: str | None = None,
     message: str | None = None,
-) -> SorgeniaApiError:
+) -> SorgeniaApiResponseError:
     """Build the appropriate exception from a JSON error payload."""
     if isinstance(response, dict):
         code = response.get("errorCode") or response.get("code") or response.get("error")
@@ -109,13 +113,13 @@ def error_from_response(
         description = None
         error_copy = None
 
-    cls: type[SorgeniaApiError] = SorgeniaApiError
+    cls: type[SorgeniaApiResponseError] = SorgeniaApiResponseError
     if str(code) in {"1177", "1187", "1189"}:
         cls = OtpValidationError
     elif str(code) in {"1182", "1183", "1184", "1185", "1186", "1188"}:
         cls = OtpError
     elif str(code) in {"001", "002", "009", "010", "1004", "1015", "1180", "1191", "1192"}:
-        cls = AuthenticationError
+        cls = SorgeniaApiAuthenticationError
     elif str(code) == "invalid_token":
         cls = BidgelyError
 

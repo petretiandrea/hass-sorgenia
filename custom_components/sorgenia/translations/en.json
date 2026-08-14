@@ -5,11 +5,15 @@
         "description": "If you need help with the configuration have a look at the [documentation]({documentation_url}).",
         "data": {
           "username": "Username",
-          "password": "Password"
+          "password": "Password",
+          "client_code": "Client code",
+          "pod": "POD"
         },
         "data_description": {
           "username": "The account name you use to sign in to the device.",
-          "password": "The password for that account. It is stored encrypted and never written to the log."
+          "password": "The password for that account. It is used only to obtain your session tokens and is not stored.",
+          "client_code": "Your Sorgenia client code.",
+          "pod": "The POD of the electricity supply you want to monitor."
         }
       },
       "otp": {
@@ -70,7 +74,7 @@
           "update_interval_hours": "Update interval (hours)"
         },
         "data_description": {
-          "update_interval_hours": "How often to fetch the device state, between 0.25 and 24 hours."
+          "update_interval_hours": "How often to fetch the device state, between 1 and 24 hours."
         }
       }
     }
@@ -109,11 +113,11 @@
   },
   "entity": {
     "sensor": {
-      "filter_life": {
-        "name": "Filter life remaining"
+      "consumption": {
+        "name": "Consumption"
       },
-      "runtime": {
-        "name": "Total runtime"
+      "cost": {
+        "name": "Cost"
       }
     },
     "binary_sensor": {

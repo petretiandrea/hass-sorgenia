@@ -7,8 +7,9 @@ from aiohttp import ClientTimeout
 
 from custom_components.sorgenia.sorgenia_api import bidgely
 from custom_components.sorgenia.sorgenia_api.auth.base import AbstractAuth
-from custom_components.sorgenia.sorgenia_api.errors import ClientError, error_from_response, raise_for_api_response
+from custom_components.sorgenia.sorgenia_api.errors import SorgeniaApiError, error_from_response, raise_for_api_response
 from custom_components.sorgenia.sorgenia_api.http import DEFAULT_TIMEOUT
+from custom_components.sorgenia.sorgenia_api.models import SorgeniaUsageChartDetails
 
 
 class SorgeniaApi:
@@ -57,10 +58,10 @@ class SorgeniaApi:
         raise_for_api_response(payload, endpoint="/extlogin/validate")
         token = payload.get("token") if isinstance(payload, dict) else None
         if not isinstance(token, str) or not token:
-            raise ClientError("Sorgenia did not return a Bidgely JWT")
+            raise SorgeniaApiError("Sorgenia did not return a Bidgely JWT")
         return token
 
-    async def async_get_usage_chart_details(self, **kwargs: Any) -> Any:
+    async def async_get_usage_chart_details(self, **kwargs: Any) -> SorgeniaUsageChartDetails:
         """Return consumption details, including the required Bidgely SSO step."""
         bidgely_jwt = await self.async_get_bidgely_jwt()
         session = await bidgely.async_exchange_sso_token(
@@ -68,13 +69,17 @@ class SorgeniaApi:
             bidgely_jwt,
             timeout=self._timeout,
         )
-        return await bidgely.async_usage_chart_details(
+        response = await bidgely.async_usage_chart_details(
             self._auth.websession,
             self._bidgely_user_id,
             session.access_token,
             timeout=self._timeout,
             **kwargs,
         )
+        try:
+            return SorgeniaUsageChartDetails.from_response(response)
+        except (TypeError, ValueError) as exc:
+            raise SorgeniaApiError("Bidgely returned an invalid usage-chart-details response") from exc
 
 
 def _decode_json(raw: bytes) -> Any:
