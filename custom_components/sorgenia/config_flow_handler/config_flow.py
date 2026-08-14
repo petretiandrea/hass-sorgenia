@@ -4,6 +4,7 @@ from typing import Any
 
 from custom_components.sorgenia.const import (
     CONF_ACCESS_TOKEN,
+    CONF_CLIENT_CODE,
     CONF_OTP,
     CONF_REFRESH_TOKEN,
     CONF_VALIDATED_PHONE,
@@ -11,10 +12,11 @@ from custom_components.sorgenia.const import (
     LOGGER,
 )
 from custom_components.sorgenia.sorgenia_api import (
-    AuthenticationError,
-    ClientError,
     OtpRequired,
     OtpValidationError,
+    SorgeniaApiAuthenticationError,
+    SorgeniaApiCommunicationError,
+    SorgeniaApiError,
     SorgeniaTokens,
 )
 from homeassistant import config_entries
@@ -123,11 +125,11 @@ class SorgeniaConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 )
             except OtpValidationError:
                 errors["base"] = "invalid_otp"
-            except AuthenticationError:
+            except SorgeniaApiAuthenticationError:
                 errors["base"] = "invalid_otp"
-            except ClientError:
+            except SorgeniaApiCommunicationError:
                 errors["base"] = "cannot_connect"
-            except Exception:  # noqa: BLE001 - Preserve the unexpected failure in the Home Assistant log.
+            except SorgeniaApiError:
                 LOGGER.exception("Unexpected exception verifying Sorgenia OTP")
                 errors["base"] = "unknown"
             else:
@@ -154,11 +156,11 @@ class SorgeniaConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             )
         except OtpRequired as err:
             return await self._async_start_otp(user_input, step_id, err)
-        except AuthenticationError:
+        except SorgeniaApiAuthenticationError:
             return self._async_show_credentials_form(user_input, step_id, {"base": "invalid_auth"})
-        except ClientError:
+        except SorgeniaApiCommunicationError:
             return self._async_show_credentials_form(user_input, step_id, {"base": "cannot_connect"})
-        except Exception:  # noqa: BLE001 - Preserve the unexpected failure in the Home Assistant log.
+        except SorgeniaApiError:
             LOGGER.exception("Unexpected exception logging in to Sorgenia")
             return self._async_show_credentials_form(user_input, step_id, {"base": "unknown"})
 
@@ -177,11 +179,11 @@ class SorgeniaConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         try:
             await async_send_otp(self.hass, user_input[CONF_USERNAME], otp_required.validated_phone)
-        except AuthenticationError:
+        except SorgeniaApiAuthenticationError:
             return self._async_show_credentials_form(user_input, step_id, {"base": "otp_delivery_failed"})
-        except ClientError:
+        except SorgeniaApiCommunicationError:
             return self._async_show_credentials_form(user_input, step_id, {"base": "cannot_connect"})
-        except Exception:  # noqa: BLE001 - Preserve the unexpected failure in the Home Assistant log.
+        except SorgeniaApiError:
             LOGGER.exception("Unexpected exception sending Sorgenia OTP")
             return self._async_show_credentials_form(user_input, step_id, {"base": "unknown"})
 
@@ -196,12 +198,17 @@ class SorgeniaConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="unknown")
 
         data = {
-            **self._pending_credentials,
+            **{key: value for key, value in self._pending_credentials.items() if key != CONF_PASSWORD},
             CONF_ACCESS_TOKEN: tokens.access_token,
             CONF_REFRESH_TOKEN: tokens.refresh_token or "",
             CONF_VALIDATED_PHONE: tokens.validated_phone or self._otp_phone or "",
         }
-        await self.async_set_unique_id(_username_unique_id(data[CONF_USERNAME]))
+        if self.source == SOURCE_REAUTH:
+            data = {**self._get_reauth_entry().data, **data}
+        elif self.source == SOURCE_RECONFIGURE:
+            data = {**self._get_reconfigure_entry().data, **data}
+
+        await self.async_set_unique_id(_client_code_unique_id(data[CONF_CLIENT_CODE]))
 
         if self.source == SOURCE_REAUTH:
             self._abort_if_unique_id_mismatch()
@@ -244,9 +251,9 @@ class SorgeniaConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
-def _username_unique_id(username: str) -> str:
-    """Normalize the only account identifier available during authentication."""
-    return username.strip().casefold()
+def _client_code_unique_id(client_code: str) -> str:
+    """Normalize the stable customer account identifier."""
+    return client_code.strip().casefold()
 
 
 __all__ = ["SorgeniaConfigFlowHandler"]

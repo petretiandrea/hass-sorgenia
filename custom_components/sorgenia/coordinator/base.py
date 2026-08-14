@@ -1,9 +1,9 @@
 """Data update coordinator for sorgenia."""
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, TypedDict
 
-from custom_components.sorgenia.api import SorgeniaApiClientAuthenticationError, SorgeniaApiClientError
 from custom_components.sorgenia.const import DOMAIN
+from custom_components.sorgenia.sorgenia_api import SorgeniaApiAuthenticationError, SorgeniaApiError
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -11,12 +11,19 @@ if TYPE_CHECKING:
     from custom_components.sorgenia.data import SorgeniaConfigEntry
 
 
-class SorgeniaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+class SorgeniaConsumptionData(TypedDict):
+    """Consumption data exposed to the integration entities."""
+
+    consumption: float
+    cost: float
+
+
+class SorgeniaDataUpdateCoordinator(DataUpdateCoordinator[SorgeniaConsumptionData]):
     """Fetch the device state once per interval and hand it to every entity."""
 
     config_entry: SorgeniaConfigEntry
 
-    async def _async_update_data(self) -> dict[str, Any]:
+    async def _async_update_data(self) -> SorgeniaConsumptionData:
         """
         Fetch the current device state.
 
@@ -29,14 +36,20 @@ class SorgeniaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         """
         try:
-            return await self.config_entry.runtime_data.client.async_get_data()
-        except SorgeniaApiClientAuthenticationError as exception:
+            details = await self.config_entry.runtime_data.client.async_get_usage_chart_details()
+            interval = details.ongoing_interval
+        except SorgeniaApiAuthenticationError as exception:
             raise ConfigEntryAuthFailed(
                 translation_domain=DOMAIN,
                 translation_key="authentication_failed",
             ) from exception
-        except SorgeniaApiClientError as exception:
+        except SorgeniaApiError as exception:
             raise UpdateFailed(
                 translation_domain=DOMAIN,
                 translation_key="update_failed",
             ) from exception
+        else:
+            interval = details.ongoing_interval
+            if interval is None:
+                raise UpdateFailed("Bidgely did not return the ongoing billing interval")
+            return {"consumption": interval.consumption, "cost": interval.cost}
