@@ -6,6 +6,7 @@ from custom_components.sorgenia.const import (
     CONF_ACCESS_TOKEN,
     CONF_CLIENT_CODE,
     CONF_OTP,
+    CONF_POD,
     CONF_REFRESH_TOKEN,
     CONF_VALIDATED_PHONE,
     DOMAIN,
@@ -25,8 +26,8 @@ from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.loader import async_get_loaded_integration
 
 from .options_flow import SorgeniaOptionsFlow
-from .schemas import get_otp_schema, get_reauth_schema, get_reconfigure_schema, get_user_schema
-from .validators import async_login, async_send_otp, async_verify_otp
+from .schemas import get_otp_schema, get_reauth_schema, get_reconfigure_schema, get_tokens_schema, get_user_schema
+from .validators import async_login, async_send_otp, async_validate_tokens, async_verify_otp
 
 
 class SorgeniaConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
@@ -51,16 +52,54 @@ class SorgeniaConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self,
         user_input: dict[str, Any] | None = None,
     ) -> config_entries.ConfigFlowResult:
-        """Handle a flow started by the user."""
+        """Show the setup method selector."""
+        return self.async_show_menu(
+            step_id="user",
+            menu_options=["credentials", "tokens"],
+        )
+
+    async def async_step_credentials(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Handle setup with Sorgenia username, password and OTP."""
         if user_input is not None:
-            return await self._async_submit_credentials(user_input, "user")
+            return await self._async_submit_credentials(user_input, "credentials")
 
         integration = async_get_loaded_integration(self.hass, DOMAIN)
         return self.async_show_form(
-            step_id="user",
+            step_id="credentials",
             data_schema=get_user_schema(),
             description_placeholders={"documentation_url": integration.documentation or ""},
         )
+
+    async def async_step_tokens(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Handle setup with existing access and refresh tokens."""
+        if user_input is not None:
+            try:
+                tokens = await async_validate_tokens(
+                    self.hass,
+                    user_input[CONF_USERNAME],
+                    user_input[CONF_CLIENT_CODE],
+                    user_input[CONF_POD],
+                    user_input[CONF_ACCESS_TOKEN],
+                    user_input[CONF_REFRESH_TOKEN],
+                )
+            except SorgeniaApiAuthenticationError:
+                return self._async_show_tokens_form({"base": "invalid_auth"})
+            except SorgeniaApiCommunicationError:
+                return self._async_show_tokens_form({"base": "cannot_connect"})
+            except SorgeniaApiError:
+                LOGGER.exception("Unexpected exception validating Sorgenia tokens")
+                return self._async_show_tokens_form({"base": "unknown"})
+            else:
+                self._pending_credentials = user_input
+                return await self._async_finish(tokens)
+
+        return self._async_show_tokens_form()
 
     async def async_step_reconfigure(
         self,
@@ -242,12 +281,21 @@ class SorgeniaConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 errors=errors,
             )
 
-        integration = async_get_loaded_integration(self.hass, DOMAIN)
         return self.async_show_form(
-            step_id="user",
+            step_id="credentials",
             data_schema=get_user_schema(user_input),
             errors=errors,
-            description_placeholders={"documentation_url": integration.documentation or ""},
+        )
+
+    def _async_show_tokens_form(
+        self,
+        errors: dict[str, str] | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Show the form for existing session tokens."""
+        return self.async_show_form(
+            step_id="tokens",
+            data_schema=get_tokens_schema(),
+            errors=errors,
         )
 
 

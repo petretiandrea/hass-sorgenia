@@ -1,10 +1,11 @@
 """Async client functions for the Bidgely SSO and consumption APIs."""
 
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 import os
-import time
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse
+from zoneinfo import ZoneInfo
 
 from aiohttp import ClientSession, ClientTimeout
 
@@ -72,19 +73,24 @@ async def async_usage_chart_details(
     bidgely_access_token: str,
     *,
     mode: str = "year",
-    start: int = 0,
+    start: int | None = None,
     end: int | None = None,
     measurement_type: str = "ELECTRIC",
     locale: str = "it_IT",
     timeout: ClientTimeout | None = DEFAULT_TIMEOUT,
 ) -> Any:
     """Return the raw ``usage-chart-details`` document from Bidgely."""
+    if start is None or end is None:
+        month_start, month_end = _current_month_range()
+        start = month_start if start is None else start
+        end = month_end if end is None else end
+
     query = urlencode(
         {
             "measurement-type": measurement_type,
             "mode": mode,
             "start": start,
-            "end": int(time.time()) if end is None else end,
+            "end": end,
             "date-format": "DATE_TIME",
             "locale": locale,
             "next-bill-cycle": "false",
@@ -104,6 +110,14 @@ async def async_usage_chart_details(
         },
         timeout=timeout,
     )
+
+
+def _current_month_range() -> tuple[int, int]:
+    """Return inclusive Unix timestamps for the current Italian calendar month."""
+    now = datetime.now(ZoneInfo("Europe/Rome"))
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    next_month = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1)
+    return int(month_start.timestamp()), int((next_month - timedelta(seconds=1)).timestamp())
 
 
 def _token_from_location(location: str) -> str | None:

@@ -2,6 +2,12 @@
   "config": {
     "step": {
       "user": {
+        "menu_options": {
+          "credentials": "Sign in with username and password",
+          "tokens": "Use existing session tokens"
+        }
+      },
+      "credentials": {
         "description": "If you need help with the configuration have a look at the [documentation]({documentation_url}).",
         "data": {
           "username": "Username",
@@ -14,6 +20,24 @@
           "password": "The password for that account. It is used only to obtain your session tokens and is not stored.",
           "client_code": "Your Sorgenia client code.",
           "pod": "The POD of the electricity supply you want to monitor."
+        }
+      },
+      "tokens": {
+        "title": "Use existing session tokens",
+        "description": "Use an existing access token and refresh token without requesting a new OTP.",
+        "data": {
+          "username": "Username",
+          "client_code": "Client code",
+          "pod": "POD",
+          "access_token": "Access token",
+          "refresh_token": "Refresh token"
+        },
+        "data_description": {
+          "username": "The account name associated with these tokens.",
+          "client_code": "Your Sorgenia client code.",
+          "pod": "The POD of the electricity supply you want to monitor.",
+          "access_token": "A current Sorgenia access token.",
+          "refresh_token": "The refresh token paired with the access token."
         }
       },
       "otp": {
@@ -52,7 +76,7 @@
     },
     "error": {
       "cannot_connect": "Unable to connect to the server.",
-      "invalid_auth": "The username or password is wrong.",
+      "invalid_auth": "The credentials or session tokens are invalid.",
       "invalid_otp": "The one-time password is invalid or has expired. Try again.",
       "otp_delivery_failed": "Sorgenia could not send the one-time password. Try again later.",
       "otp_phone_missing": "Sorgenia did not provide a phone number for OTP verification.",

@@ -97,12 +97,17 @@ class SorgeniaUsageChartDetails:
         interval_data = payload.get("usageChartDataList")
         if not isinstance(interval_data, list):
             raise TypeError("usage-chart-details response does not contain usageChartDataList")
-        intervals = tuple(
-            SorgeniaUsageInterval.from_response(item) for item in interval_data if isinstance(item, Mapping)
-        )
+        intervals: list[SorgeniaUsageInterval] = []
+        for item in interval_data:
+            if not isinstance(item, Mapping):
+                continue
+            try:
+                intervals.append(SorgeniaUsageInterval.from_response(item))
+            except ValueError:
+                continue
         if not intervals:
             raise ValueError("usage-chart-details response contains no usage intervals")
-        return cls(intervals=intervals)
+        return cls(intervals=tuple(intervals))
 
     @property
     def ongoing_interval(self) -> SorgeniaUsageInterval | None:
@@ -115,6 +120,11 @@ def _as_float(value: Any) -> float | None:
         return None
     if isinstance(value, (int, float)):
         return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return None
     return None
 
 
@@ -125,4 +135,10 @@ def _as_int(value: Any) -> int | None:
         return value
     if isinstance(value, float) and value.is_integer():
         return int(value)
+    if isinstance(value, str):
+        try:
+            numeric_value = float(value)
+        except ValueError:
+            return None
+        return int(numeric_value) if numeric_value.is_integer() else None
     return None

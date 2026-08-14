@@ -35,8 +35,12 @@ async def test_user_flow_creates_entry_with_tokens(hass: HomeAssistant) -> None:
         return_value=tokens,
     ):
         result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"next_step_id": "credentials"},
+        )
         assert result["type"] is FlowResultType.FORM
-        assert result["step_id"] == "user"
+        assert result["step_id"] == "credentials"
 
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
@@ -88,6 +92,10 @@ async def test_user_flow_completes_otp_login(hass: HomeAssistant) -> None:
         result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
+            {"next_step_id": "credentials"},
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
             {CONF_USERNAME: "test-user", CONF_PASSWORD: "test-password", CONF_CLIENT_CODE: "client", CONF_POD: "pod"},
         )
         assert result["type"] is FlowResultType.FORM
@@ -134,6 +142,10 @@ async def test_otp_flow_recovers_after_invalid_code(hass: HomeAssistant) -> None
         result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
+            {"next_step_id": "credentials"},
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
             {CONF_USERNAME: "test-user", CONF_PASSWORD: "test-password", CONF_CLIENT_CODE: "client", CONF_POD: "pod"},
         )
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_OTP: "000000"})
@@ -143,3 +155,48 @@ async def test_otp_flow_recovers_after_invalid_code(hass: HomeAssistant) -> None
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_OTP: "123456"})
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
+@pytest.mark.unit
+async def test_tokens_flow_creates_entry_without_otp(hass: HomeAssistant) -> None:
+    """Existing tokens are validated without calling the OTP login endpoints."""
+    tokens = SorgeniaTokens(
+        access_token="rotated-access-token",
+        refresh_token="rotated-refresh-token",
+        username="test-user",
+    )
+    with patch(
+        "custom_components.sorgenia.config_flow_handler.config_flow.async_validate_tokens",
+        new_callable=AsyncMock,
+        return_value=tokens,
+    ) as validate_tokens:
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"next_step_id": "tokens"},
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "tokens"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_USERNAME: "test-user",
+                CONF_CLIENT_CODE: "client",
+                CONF_POD: "pod",
+                CONF_ACCESS_TOKEN: "access-token",
+                CONF_REFRESH_TOKEN: "refresh-token",
+            },
+        )
+
+    validate_tokens.assert_awaited_once_with(
+        hass,
+        "test-user",
+        "client",
+        "pod",
+        "access-token",
+        "refresh-token",
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_ACCESS_TOKEN] == "rotated-access-token"
+    assert result["data"][CONF_REFRESH_TOKEN] == "rotated-refresh-token"
