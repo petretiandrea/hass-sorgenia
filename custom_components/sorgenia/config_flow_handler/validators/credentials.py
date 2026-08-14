@@ -1,35 +1,46 @@
-"""Credential validation for the config flow."""
+"""Sorgenia credential and OTP validation for the config flow."""
 
 from typing import TYPE_CHECKING
 
-from custom_components.sorgenia.api import SorgeniaApiClient
+from custom_components.sorgenia.const import SORGENIA_BASIC_AUTH, SORGENIA_SUBSCRIPTION_KEY
+from custom_components.sorgenia.sorgenia_api import SorgeniaAuth, SorgeniaTokens
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
 
-async def validate_credentials(hass: HomeAssistant, username: str, password: str) -> None:
-    """
-    Test the credentials against the API.
+async def async_login(hass: HomeAssistant, username: str, password: str) -> SorgeniaTokens:
+    """Log in with username and password, returning the issued tokens."""
+    auth = _create_auth(hass)
+    return await auth.async_login(username, password)
 
-    Args:
-        hass: The Home Assistant instance.
-        username: The username to validate.
-        password: The password to validate.
 
-    Raises:
-        SorgeniaApiClientAuthenticationError: If the credentials are rejected.
-        SorgeniaApiClientCommunicationError: If the API cannot be reached.
-        SorgeniaApiClientError: For any other API failure.
+async def async_send_otp(hass: HomeAssistant, username: str, phone: str) -> None:
+    """Send an OTP to the phone confirmed by Sorgenia."""
+    auth = _create_auth(hass)
+    await auth.async_send_otp(username, phone)
 
-    """
-    client = SorgeniaApiClient(
-        username=username,
-        password=password,
-        session=async_get_clientsession(hass),
+
+async def async_verify_otp(
+    hass: HomeAssistant,
+    username: str,
+    phone: str,
+    otp: str,
+    otp_token: str,
+) -> SorgeniaTokens:
+    """Verify an OTP and return the issued tokens."""
+    auth = _create_auth(hass)
+    return await auth.async_verify_otp(username, phone, otp, otp_token)
+
+
+def _create_auth(hass: HomeAssistant) -> SorgeniaAuth:
+    """Create an authentication client backed by Home Assistant's shared session."""
+    return SorgeniaAuth(
+        async_get_clientsession(hass),
+        subscription_key=SORGENIA_SUBSCRIPTION_KEY,
+        basic_auth=SORGENIA_BASIC_AUTH,
     )
-    await client.async_get_data()
 
 
-__all__ = ["validate_credentials"]
+__all__ = ["async_login", "async_send_otp", "async_verify_otp"]

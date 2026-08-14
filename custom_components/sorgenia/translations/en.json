@@ -12,6 +12,16 @@
           "password": "The password for that account. It is stored encrypted and never written to the log."
         }
       },
+      "otp": {
+        "title": "Verify your identity",
+        "description": "Sorgenia sent a one-time password to {phone}. Enter it to complete sign-in.",
+        "data": {
+          "otp": "One-time password"
+        },
+        "data_description": {
+          "otp": "Enter the verification code sent to your phone."
+        }
+      },
       "reconfigure": {
         "description": "Update the credentials for this integration.",
         "data": {
@@ -24,8 +34,8 @@
         }
       },
       "reauth_confirm": {
-        "title": "Reauthenticate integration",
-        "description": "The credentials for {username} are no longer valid. Provide updated credentials to restore access.",
+        "title": "Reauthenticate {name}",
+        "description": "Your Sorgenia session is no longer valid. Provide updated credentials to restore access.",
         "data": {
           "username": "Username",
           "password": "Password"
@@ -39,10 +49,14 @@
     "error": {
       "cannot_connect": "Unable to connect to the server.",
       "invalid_auth": "The username or password is wrong.",
+      "invalid_otp": "The one-time password is invalid or has expired. Try again.",
+      "otp_delivery_failed": "Sorgenia could not send the one-time password. Try again later.",
+      "otp_phone_missing": "Sorgenia did not provide a phone number for OTP verification.",
       "unknown": "An unknown error occurred."
     },
     "abort": {
       "already_configured": "This entry is already configured.",
+      "otp_session_expired": "The OTP verification session expired. Start setup again.",
       "reauth_successful": "Reauthentication was successful.",
       "reconfigure_successful": "Reconfiguration was successful."
     }
